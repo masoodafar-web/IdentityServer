@@ -1,0 +1,13 @@
+﻿[
+
+    {
+      "UserName": "admin",
+      "PasswordHash": "Pass123$",
+      "UserRoles": [
+        {
+          "RoleId": "1"
+        }
+      ]
+    }
+
+]

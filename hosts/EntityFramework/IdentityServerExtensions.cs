@@ -4,6 +4,9 @@
 using Duende.IdentityServer.Configuration;
 using Duende.IdentityServer.Configuration.EntityFramework;
 using IdentityModel;
+using IdentityServerHost.Data;
+using IdentityServerHost.Models;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace IdentityServerHost;
@@ -13,16 +16,29 @@ internal static class IdentityServerExtensions
     internal static WebApplicationBuilder ConfigureIdentityServer(this WebApplicationBuilder builder)
     {
         var connectionString = builder.Configuration.GetConnectionString("db");
+        
+        builder.Services.AddDbContext<ApplicationDbContext>(options =>
+            options.UseSqlServer(connectionString));
+        
+        var passwordOptions = builder.Configuration.GetSection("IdentityOptions:PasswordOptions").Get<PasswordOptions>();
+        builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
+            {
+                options.Password = passwordOptions;
+            }).AddRoles<ApplicationRole>()
+            .AddRoleManager<RoleManager<ApplicationRole>>()
+            .AddEntityFrameworkStores<ApplicationDbContext>()
+            .AddDefaultTokenProviders();
 
         builder.Services.AddIdentityServer(options =>
-        {
-            options.Authentication.CoordinateClientLifetimesWithUserSession = true;
-            options.ServerSideSessions.UserDisplayNameClaimType = JwtClaimTypes.Name;
-            options.ServerSideSessions.RemoveExpiredSessions = true;
-            options.ServerSideSessions.RemoveExpiredSessionsFrequency = TimeSpan.FromSeconds(10);
-            options.ServerSideSessions.ExpiredSessionsTriggerBackchannelLogout = true;
-        })
-            .AddTestUsers(TestUsers.Users)
+            {
+                options.Authentication.CoordinateClientLifetimesWithUserSession = true;
+                options.ServerSideSessions.UserDisplayNameClaimType = JwtClaimTypes.Name;
+                options.ServerSideSessions.RemoveExpiredSessions = true;
+                options.ServerSideSessions.RemoveExpiredSessionsFrequency = TimeSpan.FromSeconds(10);
+                options.ServerSideSessions.ExpiredSessionsTriggerBackchannelLogout = true;
+            })
+
+            //.AddTestUsers(TestUsers.Users)
             // this adds the config data from DB (clients, resources, CORS)
             .AddConfigurationStore(options =>
             {
@@ -42,11 +58,10 @@ internal static class IdentityServerExtensions
             // this is something you will want in production to reduce load on and requests to the DB
             //.AddConfigurationStoreCache()
             ;
-
         builder.Services.AddIdentityServerConfiguration(opt =>
-        {
+            {
                 // opt.DynamicClientRegistration.SecretLifetime = TimeSpan.FromHours(1);
-        })
+            })
             .AddClientConfigurationStore();
 
         return builder;

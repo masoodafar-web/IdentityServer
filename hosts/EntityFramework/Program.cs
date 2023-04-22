@@ -31,6 +31,8 @@ try
     var app = builder
         .ConfigureServices()
         .ConfigurePipeline();
+    
+    SeedData.EnsureSeedData(app.Services);
 
     app.Run();
 }
